@@ -134,7 +134,106 @@ Categorize opps into:
 
 Calculate realistic close estimate based on health checks, not just CRM stage.
 
-#### 2C. Structural Pattern Detection
+#### 2C. Customer 360 Methodology Phase Mapping
+
+**Which deals get a methodology check:**
+1. **All opps closing this month + next month** (regardless of amount) — urgency demands it
+2. **All opps ≥$100K closing later** — size/importance warrants it
+3. Skip opps that are both small (<$100K) AND closing 60+ days out — they'll get picked up as they approach
+
+**Account-level vs. Opp-level assessment:**
+- The **5Cs Discovery** is assessed at the **account level** — you discover the customer once, and that feeds all opps on that account
+- The **BUILD TRUST and PARTNER checklists** are assessed at the **opp level** — each opp needs its own demo, complexity assessment, commercial terms
+- For accounts with multiple opps, show the 5Cs once and then the phase checklist per-opp where they differ
+
+Map each opportunity to its current phase in the Salesforce Customer 360 Methodology (Sales Path for Solution & Industry):
+
+| Phase | Org62 Stages | What It Means | Advance When |
+|---|---|---|---|
+| **LISTEN** | 01-02 | Gaining deep understanding of customer. Building POV. Getting commitment to engage. | Customer commits to deeper engagement + Discovery Event scheduled |
+| **BUILD TRUST** | 03-04-05 | Building credibility through demos, workshops, discovery. Demonstrating differentiation. | Customer validates Connected Vision + identifies Salesforce as vendor of choice |
+| **PARTNER** | 06-07-08 | Aligning on Joint Solution. Commercial negotiation. Closing. | Deal signed |
+| **SUCCEED** | Post-close | Ensuring customer receives promised value | Ongoing |
+
+**For each opp, assess required activities completion for its current phase:**
+
+**LISTEN phase (Stage 01-02) required activities:**
+- [ ] Joint Account Plan with Executive Power Map
+- [ ] Solution Use-Case POV (with C360 Connected Vision)
+- [ ] Collaborate on Connected Vision with customer
+- [ ] Customer Commitment to Deeper Engagement
+- [ ] Position Premier/Signature Success Plans
+- [ ] 5Cs Discovery (assess each individually):
+
+**5Cs Discovery Checklist:**
+| C | Status | Evidence |
+|---|---|---|
+| **C-level Priorities** | :white_check_mark: / :large_yellow_circle: / :x: | What do the execs care about most? Named priorities from customer's own words. |
+| **Challenges** | :white_check_mark: / :large_yellow_circle: / :x: | What obstacles are blocking their goals? Operational pain, process gaps, skill gaps. |
+| **Competitive Threats** | :white_check_mark: / :large_yellow_circle: / :x: | Who/what are they competing against in their market? Market pressure driving urgency. |
+| **Compelling Events** | :white_check_mark: / :large_yellow_circle: / :x: | Time-bound triggers: contract expirations, regulatory deadlines, budget cycles, go-lives, EOL dates. |
+| **Potential Crises** | :white_check_mark: / :large_yellow_circle: / :x: | Risks that escalate if unaddressed: attrition, compliance failures, system outages, revenue leakage. |
+
+For each deal in LISTEN phase, assess how many of the 5Cs have been identified:
+- **5/5 identified** → ready to build a strong POV and advance
+- **3-4/5 identified** → POV possible but has blind spots — flag what's missing
+- **1-2/5 identified** → discovery is incomplete — do not advance to BUILD TRUST
+- **0/5 identified** → no real discovery has happened — this is a ghost opp regardless of stage
+
+The 5Cs map directly to SE Scorecard metrics:
+- C-level Priorities → Exec Access & Sponsorship (metric 9)
+- Challenges → Process & Functional Discovery (metric 1)
+- Competitive Threats → Competitive Position (metric 7)
+- Compelling Events → Compelling Event (metric 2)
+- Potential Crises → Unique Business Value (metric 5) — the "what happens if you do nothing" story
+
+**BUILD TRUST phase (Stage 03-04-05) required activities:**
+
+**Build Trust Checklist:**
+| Activity | Status | Evidence Source | What Good Looks Like |
+|---|---|---|---|
+| **Discovery Workshop conducted** | :white_check_mark: / :large_yellow_circle: / :x: | Slack call notes, calendar events, Google Doc agendas in #ZC channel | Co-creation session with customer stakeholders; documented outcomes and follow-ups |
+| **Solution Demo / Holodeck delivered** | :white_check_mark: / :large_yellow_circle: / :x: | Slack posts ("demo went well"), CRM activity, demo prep threads | Tailored demo mapped to discovery findings, not a generic product tour |
+| **Connected Vision evolved & validated** | :white_check_mark: / :large_yellow_circle: / :x: | Google Doc/Slides shared in Slack, customer feedback documented | Customer has seen, commented on, and agreed to the vision — not just internal |
+| **Complexity Assessment done** | :white_check_mark: / :large_yellow_circle: / :x: | Integration landscape discussed, user counts confirmed, timeline mapped | Data sources, integrations, user volumes, and go-live timeline documented |
+| **Business Value quantified (BVS engaged)** | :white_check_mark: / :large_yellow_circle: / :x: | BVS DSR filed, ROI doc shared, financial model referenced | Customer-specific ROI with quantified outcomes (not generic "you'll save time") |
+| **Competitive differentiation delivered** | :white_check_mark: / :large_yellow_circle: / :x: | Competitive positioning in Slack, CI team engaged, battle card used | Customer understands why Salesforce vs. specific named alternatives |
+| **Vendor-of-choice signal received** | :white_check_mark: / :large_yellow_circle: / :x: | Customer language in call notes: "we want Salesforce," verbal commit, shortlist of 1 | Explicit customer statement — not seller assumption |
+
+For each deal in BUILD TRUST phase, assess completion:
+- **6-7/7 complete** → ready to advance to PARTNER, commercial conversation appropriate
+- **4-5/7 complete** → progressing well but gaps remain — address before advancing
+- **2-3/7 complete** → deal is premature at this stage — either regress or accelerate missing activities
+- **0-1/7 complete** → stage is wrong — this deal hasn't earned BUILD TRUST regardless of what CRM says
+
+**PARTNER phase (Stage 06-07-08) required activities:**
+
+**Partner Checklist:**
+| Activity | Status | Evidence Source | What Good Looks Like |
+|---|---|---|---|
+| **Mutual Close Plan / Joint Eval Plan** | :white_check_mark: / :large_yellow_circle: / :x: | Doc shared in Slack, milestones with dates, customer co-owns timeline | Named milestones, owners on both sides, dates agreed — not a seller-only internal doc |
+| **Commercial terms in motion** | :white_check_mark: / :large_yellow_circle: / :x: | Quote exists in Org62, pricing call logged, DocuSign sent | Customer has seen pricing and engaged on it — not just a quote sitting in a drawer |
+| **Implementation partner confirmed** | :white_check_mark: / :large_yellow_circle: / :x: | Partner named in Slack, partner on calls, SOW discussed | Customer has met the partner, scope is discussed, partner is committed |
+| **Legal / Procurement engaged** | :white_check_mark: / :large_yellow_circle: / :x: | Procurement contact identified, MSA/security review started, legal questions asked | Procurement is aware and active — not "we'll send it to procurement when ready" |
+| **Success Plan confirmed** | :white_check_mark: / :large_yellow_circle: / :x: | Premier/Signature tier selected, included in quote, customer understands value | Customer chose a tier based on their complexity/risk, not just seller bundling it in |
+| **Executive alignment (both sides)** | :white_check_mark: / :large_yellow_circle: / :x: | Salesforce exec sponsor assigned, customer exec in room for commercial discussion | Both sides have executive-level ownership of the deal's success — not just AE-to-champion |
+
+For each deal in PARTNER phase, assess completion:
+- **5-6/6 complete** → deal is real, close is mechanical — focus on timeline and removing blockers
+- **3-4/6 complete** → deal is progressing but has commercial/procurement gaps that could stall at the last mile
+- **1-2/6 complete** → deal is premature at PARTNER — significant risk of "stuck at Stage 06" syndrome
+- **0/6 complete** → stage is fiction — this deal has been advanced without earning it
+
+**"Stuck at Stage 06" warning:** Deals that reach PARTNER without completing BUILD TRUST activities (no demo, no business value, no competitive win) are the most common source of late-stage slips. They look like they're about to close but have no foundation. Flag these aggressively.
+
+**In the canvas, flag methodology gaps as:**
+- :white_check_mark: Activity completed (evidence exists)
+- :large_yellow_circle: Activity in progress (partial evidence)
+- :x: Activity not started (no evidence)
+
+This assessment feeds into the Structural Insights section — patterns like "80% of Stage 02 deals have no POV" or "no deal in the portfolio has a completed Connected Vision" are high-value coaching signals.
+
+#### 2D. Structural Pattern Detection
 
 Look across the full portfolio for:
 - Concentration risk (single account dominance)
@@ -144,6 +243,8 @@ Look across the full portfolio for:
 - SE attachment gaps (no scorecard at Stage 02+)
 - Close date discipline (Stage 02 with near-term close dates)
 - Ghost pipeline (opps with zero activity ever)
+- **Methodology gaps** — deals at advanced stages without completing the required activities for their phase (e.g., Stage 04 with no demo delivered, Stage 02 with no POV, Stage 06 with no Mutual Close Plan)
+- **Premature stage advancement** — deals that have been moved forward in stage without earning it through methodology activities (the most dangerous pipeline fiction)
 
 ### Phase 3: Canvas Generation
 
@@ -208,6 +309,57 @@ Repeat for each remaining month in current FQ, then each month of next FQ.
 * [what we don't know that matters]
 
 Repeat for each account with ≥$100K in pipeline or critical status. Group smaller accounts into a "Monitor Only" section if appropriate.
+
+---
+
+# :compass: Methodology Phase Check
+
+| Opportunity | Phase | Stage | Key Gap | Required Activity Missing |
+| --- | --- | --- | --- | --- |
+| [Opp Name] | LISTEN | 02 | No POV delivered | Solution Use-Case POV not created |
+| [Opp Name] | BUILD TRUST | 04 | No demo delivered | Solution Demo / Holodeck not scheduled |
+
+For each ≥$100K opp (or any opp where methodology gaps are blocking advancement), show:
+- Current phase based on stage
+- The most critical missing required activity for that phase
+- Whether the deal SHOULD be in its current phase (e.g., Stage 04 with no discovery = premature advancement)
+- **Recommended action to strengthen and progress the deal**
+
+Flag deals where stage is ahead of methodology completion — these are the most dangerous because they look healthy in the forecast but lack the foundation to close.
+
+### Methodology Strengthening Recommendations
+
+For each gap identified, recommend a specific action mapped to the missing activity:
+
+**LISTEN phase gaps → Recommended actions:**
+| Missing Activity | Recommended Action |
+| --- | --- |
+| No Joint Account Plan | Schedule 30-min internal account planning session with extended team (SE, CSG, Partner) |
+| No POV | Draft Solution Use-Case POV using account research + 5Cs; share with customer sponsor for validation |
+| No Connected Vision | Build a 1-slide Connected Vision showing how Salesforce products connect to their stated priorities |
+| No Customer Commitment | Ask for a specific next step: "Can we schedule a 60-min discovery workshop with your team?" |
+| 5Cs not identified | Run a 5Cs research sweep (Slack, web, 10-K, earnings calls) and draft hypothesis for AE to validate |
+| No Success Plan positioned | Introduce Premier/Signature in context of implementation risk reduction — not as an upsell |
+
+**BUILD TRUST phase gaps → Recommended actions:**
+| Missing Activity | Recommended Action |
+| --- | --- |
+| No Discovery Workshop | Propose a co-creation workshop agenda tied to their top 2-3 stated priorities |
+| No Demo / Holodeck | Schedule a tailored demo mapped to discovery findings — not a generic product tour |
+| Connected Vision not evolved | Update the Connected Vision with customer-validated language from discovery, present back for confirmation |
+| No Complexity Assessment | Review integration landscape, data volume, user count, and timeline — flag risks early |
+| No vendor-of-choice signal | Ask directly: "What would need to be true for you to choose Salesforce?" — surface decision criteria |
+| Success Plan not reinforced | Tie Success Plan to implementation complexity: "Given X integrations and Y users, Premier/Signature de-risks your go-live" |
+
+**PARTNER phase gaps → Recommended actions:**
+| Missing Activity | Recommended Action |
+| --- | --- |
+| No Mutual Close Plan | Draft a joint evaluation plan with milestones, owners, and dates — present to customer for co-ownership |
+| No Implementation Partner | Introduce 2-3 SI options based on account size, industry, and complexity — facilitate partner intro call |
+| Commercial terms not started | AE to initiate pricing conversation anchored to business value quantified in BUILD TRUST phase |
+| Success Plan not confirmed | Finalize Success tier selection with customer as part of commercial negotiation |
+
+These recommendations should be included in the canvas under each deal's methodology row and also feed into the "This Week's Non-Negotiables" prioritization.
 
 ---
 
