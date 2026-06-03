@@ -182,10 +182,21 @@ For each Tier 1 category, determine Salesforce's position:
 | Field Service | Entitled / Absent | [entitlements in PLM] | [activate / compete] |
 | Commerce | Incumbent / Absent | [Commerce contracts] | [defend / compete] |
 
-**Write to the CI record with SF position context:**
-- If Salesforce IS incumbent → comments: "Salesforce is incumbent ([X] licenses, contract expires [date]). Competitor [Y] is attempting displacement. Defend."
-- If Salesforce is ENTITLED but not actively deployed → comments: "Salesforce entitlement exists ([entitlement name] in [SKU]) but competitor [Y] is actively used. Activation opportunity — position as 'turn on what you already own.'"
-- If Salesforce has NO position → comments: "No Salesforce footprint in this category. Competitor [Y] is incumbent. Net-new competitive play."
+**Write to the CI record — understanding the field semantics:**
+
+The `_Primary_Product__c` field means: **"What does the account primarily USE in this category?"**
+- If Salesforce IS the primary → `Primary_Product = "Salesforce"` and the competitor goes in `Secondary_Product`
+- If a competitor IS the primary → `Primary_Product = "[Competitor]"` and note SF position in comments
+- If Salesforce is entitled but competitor is actively used → `Primary_Product = "[Competitor]"` but comments note: "SF entitlement exists — activation opportunity"
+
+**Writing rules by SF position:**
+
+| SF Position | Primary_Product__c | Secondary_Product__c | Comments Context |
+|---|---|---|---|
+| **SF is incumbent (actively used)** | "Salesforce" | [Competitor being displaced, if any] | "SF IS PRIMARY. [X] licenses, [entitlements]. [Competitor] is secondary/legacy being displaced." |
+| **SF is entitled but NOT primary user** | [Competitor that IS primary] | "Salesforce" or leave blank | "SF entitlement exists ([entitlement] in [SKU]) but [Competitor] is actively used. Activation opportunity." |
+| **SF has NO position** | [Competitor] | [2nd competitor if known] | "No SF footprint. [Competitor] is incumbent. Net-new competitive play." |
+
 - Flag any contracts expiring within 6 months → "Contract [#] expires [date]. Competitors will be circling. Defend + expand in renewal conversation."
 
 ### Step 2: Sweep Org62 for Competitive Signals
