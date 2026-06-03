@@ -4,7 +4,7 @@ description: "Master orchestrator for complete account research. Coordinates all
 metadata:
   type: sales-operations
   version: "1.0"
-  depends_on: "se-360-builder, se-deal-coach, se-case-insight-analyzer, se-executive-challenge-builder, se-agentforce-use-case-advisor, se-opportunity-field-updater"
+  depends_on: "se-360-builder, se-deal-coach, se-case-insight-analyzer, se-executive-challenge-builder, se-agentforce-use-case-advisor, se-opportunity-field-updater, se-entitlement-decoder, se-competitive-intel-updater"
 ---
 
 # SE Account Research — Master Orchestrator
@@ -152,14 +152,42 @@ Create a Slack canvas titled: **Account Research: [Company] | [Mon DD, YYYY]**
 
 # :package: Salesforce Footprint
 
-## What They Own
+## Contracts → Line Items → Entitlements
 
-| Product Family | Products | Licenses | Contract End | Annual Value |
-| --- | --- | --- | --- | --- |
-| [Sales] | [Sales Cloud EE] | [X] | [date] | [$] |
-| [Service] | [Service Cloud EE] | [X] | [date] | [$] |
+*Resolved via se-entitlement-decoder. Each line item shows its Product License Map (what it actually entitles).*
+
+| Contract # | End Date | Annual Value | Line Items Summary |
+| --- | --- | --- | --- |
+| [#] | [date] | [$] | [Key products: SKU name (qty), SKU name (qty)...] |
+
+For the primary contract, expand to full line item detail:
+
+| Line Item | Qty | Family | Product License Map |
+| --- | --- | --- | --- |
+| [SKU Name] | [X] | [Family] | [Comma-separated entitlements from ProductLicenseMap] |
 
 **Total Contract Value:** $[X] | **Next Renewal:** [date]
+
+## Salesforce Position Map
+
+*Built from entitlement decoder — determines our competitive stance per category.*
+
+| Category | SF Position | Key Evidence | Implication |
+| --- | --- | --- | --- |
+| Sales/CRM | [Incumbent/Absent] | [SKU + licenses] | [Defend/Compete] |
+| Service | [Incumbent/Entitled/Absent] | [SKU + licenses] | [Defend/Activate/Compete] |
+| AI/Agentforce | [Purchased/Entitled/Absent] | [entitlements in PLM] | [Activate/Expand/Compete] |
+| Analytics | [Incumbent/Absent] | [Tableau contracts] | [Defend/Compete] |
+| Marketing | [Incumbent/Absent] | [MC contracts] | [Defend/Compete] |
+| Collaboration | [Incumbent/Absent] | [Slack contract] | [Defend/Compete] |
+| Integration | [Incumbent/Absent] | [MuleSoft contract] | [Defend/Compete] |
+| Field Service | [Entitled/Absent] | [entitlements in PLM] | [Activate/Compete] |
+
+## What They Have But Might Not Know
+
+| Capability | Entitlement | Opportunity |
+| --- | --- | --- |
+| [e.g., Agentforce basics] | [Einstein Agent Basic + Builder Free in platform SKU] | [Position as activation, not new purchase] |
 
 ## What's In Play
 
@@ -338,11 +366,12 @@ Create a Slack canvas titled: **Account Research: [Company] | [Mon DD, YYYY]**
 
 | Wave | Sub-Agents | Can Start When | Outputs |
 |---|---|---|---|
-| 1 | org62-agent, case-insight-agent, slack-agent | Immediately | Internal data foundation |
-| 2 | deal-coach-agent (×N opps) | After Wave 1 (needs opp list) | Per-opp methodology + health |
+| 1 | org62-agent, case-insight-agent, slack-agent, **entitlement-decoder-agent** | Immediately | Internal data foundation + product map |
+| 1b | **competitive-intel-agent** | After entitlement decoder (needs SF position map) | Competitive landscape with entitlement context |
+| 2 | deal-coach-agent (×N opps) | After Wave 1 (needs opp list + entitlements) | Per-opp methodology + health |
 | 3 | research-agent (company, industry, market) | After Wave 1 (needs industry context) | External intelligence |
 | 4 | synthesis-agent | After Waves 2+3 | Frameworks, challenge, use cases, mapping |
-| 5 | publish-agent | After Wave 4 | Canvas creation, SE field updates |
+| 5 | publish-agent | After Wave 4 | Canvas creation, SE field updates, CI record updates |
 
 ### What to Skip
 
@@ -354,7 +383,7 @@ Create a Slack canvas titled: **Account Research: [Company] | [Mon DD, YYYY]**
 ### Progress Communication
 
 After each wave completes, report to the user:
-- **Wave 1 done:** "Internal data pulled. Here's what I found: [headline — e.g., '$668K in pipeline across 7 opps, 15 P2 cases about integrations, active Slack deal channel']"
+- **Wave 1 done:** "Internal data pulled. Here's what I found: [headline — e.g., '$668K in pipeline across 7 opps, 15 P2 cases about integrations, active Slack deal channel. SF footprint: Manufacturing Cloud S&S UE (310 licenses) with 96 entitlements including Einstein Agent Basic + OmniStudio. They already own Agentforce for Service (168). Competitor: Zendesk being displaced.']"
 - **Wave 2 done:** "Deal coaching complete. [X] opps assessed. Best deal: [name] at [score/5]. Most at risk: [name] at [%] slip probability."
 - **Wave 3 done:** "External research complete. Key insight: [1 sentence about market position or strategic priority]"
 - **Wave 4 done:** "Synthesis complete. Executive challenge written. [X] agent use cases identified. Connected Vision drafted."

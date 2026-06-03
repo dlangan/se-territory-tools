@@ -4,7 +4,7 @@ description: "Sweeps org62 (Account activities, Opportunity fields, text fields,
 metadata:
   type: sales-operations
   version: "1.0"
-  depends_on: "se-case-insight-analyzer, se-deal-coach"
+  depends_on: "se-entitlement-decoder, se-case-insight-analyzer, se-deal-coach"
 ---
 
 # SE Competitive Intelligence Updater
@@ -124,7 +124,14 @@ WHERE Account__c = '<account_id>'
 If no record exists → note this for creation (requires admin — CI records are usually auto-created).
 If record exists → read current state to avoid overwriting fresher data.
 
-**Salesforce Contracts (what they already own from us):**
+**Salesforce Footprint — Run the Entitlement Decoder FIRST:**
+
+Before assessing any competitive landscape, run the **se-entitlement-decoder** logic to understand exactly what the customer already owns from Salesforce. This prevents:
+- Recommending a Salesforce product they already have
+- Misidentifying a category as "competitive" when Salesforce is actually the incumbent
+- Missing the "activate what you own" angle that's stronger than "buy something new"
+
+**Query contracts:**
 ```
 SELECT Id, ContractNumber, StartDate, EndDate, Status
 FROM Contract
@@ -132,26 +139,54 @@ WHERE AccountId = '<account_id>' AND Status = 'Activated'
 ORDER BY EndDate DESC
 ```
 
-**Salesforce Subscriptions (product-level detail):**
+**Query active asset line items (what they have today):**
 ```
-SELECT Id, Product2.Name, Product2.Family, Quantity, UnitPrice, TotalPrice
-FROM OpportunityLineItem
-WHERE Opportunity.AccountId = '<account_id>'
-  AND Opportunity.IsClosed = true AND Opportunity.IsWon = true
-ORDER BY Opportunity.CloseDate DESC
-LIMIT 50
+SELECT Apttus_Config2__ProductId__r.Name, Apttus_Config2__ProductId__r.Family,
+       Apttus_Config2__Quantity__c, Apttus_Config2__EndDate__c
+FROM Apttus_Config2__AssetLineItem__c
+WHERE Apttus_Config2__AccountId__c = '<account_id>'
+  AND Apttus_Config2__EndDate__c >= TODAY
+  AND Apttus_Config2__Quantity__c > 0
+ORDER BY Apttus_Config2__ProductId__r.Family
 ```
 
-**Why this matters for competitive intel:**
-- If Salesforce IS the incumbent CRM → we're defending, not attacking. Competitors are trying to displace US.
-- If Salesforce owns one product line (e.g., Service) but not another (e.g., CRM/Sales) → we're expanding; the competitor is in the adjacent space.
-- **Contract expiration dates** are the most important timing signal — 6 months before expiry is when competitors attack and when we need to defend/expand.
-- If there's NO active Salesforce contract → this is a net-new logo. We're the challenger everywhere.
+**Resolve key SKUs to entitlements (ProductLicenseMap):**
+```
+SELECT LicenseDefinition.Name
+FROM ProductLicenseMap
+WHERE ProductId = '<product2_id>'
+ORDER BY LicenseDefinition.Name
+```
 
-**Write to the CI record:**
-- If Salesforce is primary in a category → note in comments: "Salesforce is incumbent. Contract expires [date]. Defend + expand."
-- If a competitor is primary but SF contract exists in adjacent category → note: "SF owns [X], competitor owns [Y]. Cross-sell opportunity."
-- Flag any contracts expiring within 6 months as urgent — competitors will be circling.
+**Why this must happen FIRST:**
+
+| Scenario | Without Entitlement Check | With Entitlement Check |
+|---|---|---|
+| Customer has Zendesk for service | "Competitor: Zendesk (Service)" | "Competitor: Zendesk. BUT: customer already owns Service Cloud UE (310 licenses) + Agentforce for Service (168) + Einstein for Service (168). Zendesk is being DISPLACED, not competing with nothing." |
+| Customer evaluating AI tools | "Competitor: Gong, Orum" | "Competitor: Gong, Orum. BUT: customer already has Einstein Agent Basic + Builder Free + GPT Sales Access + 80M Flex Credits entitled. Position as ACTIVATION of what they own, not competing against what they're evaluating." |
+| Customer uses IFS for FSL | "Competitor: IFS (Field Service)" | "Competitor: IFS. BUT: customer's Manufacturing Cloud S&S UE includes IndustriesFieldServiceAddOn + Asset Hierarchy + Labor Cost Optimization. FSL is ENTITLED — they just haven't activated it." |
+
+**Build the Salesforce Position Map before writing competitive data:**
+
+For each Tier 1 category, determine Salesforce's position:
+
+| Category | SF Position | Evidence | Implication for CI |
+|---|---|---|---|
+| Sales / CRM | Incumbent / Expanding / Absent | [contracts + entitlements] | [defend / cross-sell / compete] |
+| Service | Incumbent / Expanding / Absent | [contracts + entitlements] | [defend / cross-sell / compete] |
+| AI / Agentforce | Entitled / Purchased / Absent | [entitlements in PLM] | [activate / expand / compete] |
+| Analytics | Incumbent / Expanding / Absent | [Tableau contracts] | [defend / cross-sell / compete] |
+| Marketing | Incumbent / Expanding / Absent | [MC contracts] | [defend / cross-sell / compete] |
+| Collaboration | Incumbent / Expanding / Absent | [Slack contract] | [defend / cross-sell / compete] |
+| Integration | Incumbent / Expanding / Absent | [MuleSoft contract] | [defend / cross-sell / compete] |
+| Field Service | Entitled / Absent | [entitlements in PLM] | [activate / compete] |
+| Commerce | Incumbent / Absent | [Commerce contracts] | [defend / compete] |
+
+**Write to the CI record with SF position context:**
+- If Salesforce IS incumbent → comments: "Salesforce is incumbent ([X] licenses, contract expires [date]). Competitor [Y] is attempting displacement. Defend."
+- If Salesforce is ENTITLED but not actively deployed → comments: "Salesforce entitlement exists ([entitlement name] in [SKU]) but competitor [Y] is actively used. Activation opportunity — position as 'turn on what you already own.'"
+- If Salesforce has NO position → comments: "No Salesforce footprint in this category. Competitor [Y] is incumbent. Net-new competitive play."
+- Flag any contracts expiring within 6 months → "Contract [#] expires [date]. Competitors will be circling. Defend + expand in renewal conversation."
 
 ### Step 2: Sweep Org62 for Competitive Signals
 
