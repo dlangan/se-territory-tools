@@ -1,0 +1,403 @@
+---
+name: se-competitive-intel-updater
+description: "Sweeps org62 (Account activities, Opportunity fields, text fields, files) and Slack for competitive intelligence signals, then populates the Competitive_Intelligence__c record on the account. Turns scattered mentions into structured competitive data."
+metadata:
+  type: sales-operations
+  version: "1.0"
+  depends_on: "se-case-insight-analyzer, se-deal-coach"
+---
+
+# SE Competitive Intelligence Updater
+
+You gather competitive intelligence from every available source — org62 activities, opportunity fields, text fields, files, and Slack conversations — and populate the structured `Competitive_Intelligence__c` record on the account. You turn scattered mentions buried in call notes, deal comments, and Slack threads into actionable competitive data visible in org62.
+
+## When to Use
+
+- "Update competitive intel for [Account]"
+- "What competitors are in play at [Account]?"
+- "Sweep [Account] for competitive signals"
+- After a deal coach or account research run reveals competitive context
+- As part of the weekly territory review (flag accounts with empty CI records)
+
+## Inputs
+
+- **Account** (required) — account name, ID, or org62 URL
+- **Focus** (optional) — specific product category to investigate (e.g., "CRM", "Analytics", "AI")
+
+## The Competitive_Intelligence__c Object
+
+One record per account. Wide table with 64 product categories. **Before sweeping for signals, reference this complete field list to know what to look for.**
+
+### Field Pattern (per category)
+
+| Field Suffix | What It Stores | Priority |
+|---|---|---|
+| `_Primary_Product__c` | Picklist — the competitor product name | Always populate |
+| `_Primary_Comments__c` | Textarea — context, status, strategy notes | Always populate |
+| `_Primary_Source__c` | String — where the intel came from (date + source) | Always populate |
+| `_Primary_Contract_Exp_Date__c` | Date — when the competitor contract expires | When known |
+| `_Primary_Date_Set__c` | Date — when this intel was captured | Always set to today |
+| `_Primary_Set_By__c` | String — who captured it | Set to "Claude Code (automated)" |
+| `_Secondary_Product__c` | Second competitor in this category | When two competitors exist |
+| `_Secondary_Comments__c` | Context for secondary | When relevant |
+| `_Secondary_Source__c` | Source for secondary | When relevant |
+| `_Secondary_Contract_Exp_Date__c` | Contract date for secondary | When known |
+| `_Secondary_Date_Set__c` | Date captured | When writing secondary |
+| `_Secondary_Set_By__c` | Who captured it | When writing secondary |
+| `_Notes__c` | Additional category-level notes | For broader landscape context |
+
+### Complete Category Reference (64 categories)
+
+**Before searching, scan this list to identify which categories to investigate for the account's industry.**
+
+#### Tier 1 — Core SE Categories (always check these)
+
+Full tracking with Primary + Secondary + Notes + Contract Dates (13 fields each):
+
+| Category Prefix | What It Covers | Salesforce Competes With | Look For |
+|---|---|---|---|
+| `Sales` | CRM / Sales tools | Sales Cloud, Agentforce for Sales | HubSpot, Dynamics, Zoho, NetSuite, SugarCRM, Pipedrive, Freshsales, Close.io |
+| `Service` | Service / Support platforms | Service Cloud, Agentforce for Service | Zendesk, Freshdesk, ServiceNow, Zoho, Intercom, Help Scout |
+| `Marketing` | Marketing automation | Marketing Cloud, MCAE | Marketo, Mailchimp, ActiveCampaign, Brevo, Constant Contact |
+| `Analytics` | BI / Reporting tools | Tableau, CRM Analytics | Power BI, Qlik, Looker, Sisense, Domo, ThoughtSpot |
+| `Collab` | Collaboration platforms | Slack | Microsoft Teams, Google Chat, Zoom Workplace |
+| `CPQ` | Quote-to-cash | Revenue Cloud, CPQ | Conga, DealHub, PandaDoc, Proposify, Zuora |
+| `Ecommerce` | Commerce platforms | Commerce Cloud | Shopify, Magento, BigCommerce, WooCommerce, SAP Commerce |
+| `Platform` | App development / low-code | Salesforce Platform | ServiceNow App Engine, OutSystems, Mendix, Power Apps |
+| `Mobile` | Mobile platforms | Salesforce Mobile | Custom apps, competitor mobile solutions |
+| `Cust_Comm` | Customer communications | Marketing Cloud, Experience Cloud | Twilio, Braze, Iterable, Customer.io |
+| `Emp_Comm` | Employee communications | Slack (internal) | Microsoft Viva, Workvivo, Staffbase |
+| `Part_Comm` | Partner communications | Experience Cloud, PRM | Impartner, Allbound, PartnerStack |
+| `Service_Chat` | Chat / Messaging | Messaging, Agentforce | Intercom, Drift, LiveChat, Ada |
+
+#### Tier 2 — Extended SE Categories (check when relevant to account industry)
+
+Basic tracking (3 fields: Product, Comments, Source):
+
+| Category Prefix | What It Covers | When to Check |
+|---|---|---|
+| `AI_Machine_Learning` | AI/ML platforms | Always — Agentforce competitive |
+| `Artificial_Intel` | AI tools (overlaps AI_ML) | When AI evaluation mentioned |
+| `Field_Service` | FSL platforms | Manufacturing, energy, utilities accounts |
+| `Middleware_Interface` | Integration / iPaaS | When integration complexity identified |
+| `B2B_Marketing` | B2B-specific marketing | B2B accounts with marketing pipe |
+| `Business_Intel` | Business intelligence | When BI mentioned separately from analytics |
+| `Data_Aggregation` | Data platforms / CDPs | When data unification discussed |
+| `Scheduling` | Scheduling tools | Field service or appointment-based businesses |
+| `Compensation_Plans` | SPM / Incentive tools | When sales comp discussed |
+| `Revenue_Mgmt` | Revenue management | When billing/revenue recognition in scope |
+
+#### Tier 3 — Industry-Specific Categories (check only for matching verticals)
+
+| Category Prefix | Industry | What It Covers |
+|---|---|---|
+| `Core_Billing`, `Core_Claim`, `Core_Policy_Admin`, `Core_Underwriting` | Insurance | Core insurance systems |
+| `Broker_Relationship_Mgmt`, `Quote_Aggregation` | Insurance | Distribution/agency |
+| `EMR_Software`, `Clinical_Data_Whse`, `Health_Info_Exchange`, `Patient_Portal`, `Population_Health`, `Care_Mgmt_Coord`, `Research_Clinical_Dev` | Healthcare | Clinical/health IT |
+| `Financial_Planning`, `Portfolio_Management`, `Trading_Software`, `Robo_Advice`, `Wealth_Mgmt_CRM`, `Custody_Cleaning`, `Middle_Office` | Financial Services | Wealth/capital markets |
+| `Advisor_Portal`, `Member_Engagement`, `Group_Sales_Enrollment` | Financial Services / Insurance | Member/advisor tools |
+| `Agency_Management`, `Fraud_Detection`, `Insurance_Data` | Insurance | Specialty insurance |
+| `Onboarding` | Cross-industry | Employee/customer onboarding |
+| `Prod_Lifecycle_Mgmt_R_D`, `Quality_Mgmt_Reg_Sys` | Manufacturing / Life Sciences | PLM and QMS |
+| `Compliant_Archive`, `Compliant_Social`, `Compliant_Text` | Regulated industries | Compliance tools |
+
+### How to Use This Reference
+
+1. **Identify the account's industry** from org62 (Account.Industry)
+2. **Always check Tier 1 categories** — these are relevant for every account
+3. **Check Tier 2 categories** based on what's been discussed (AI eval? Check AI_Machine_Learning. Integration pain? Check Middleware_Interface.)
+4. **Check Tier 3 only** if the account is in that specific vertical (Insurance, Healthcare, FSI)
+5. **When sweeping Slack/activities**, scan for ANY technology name — then map it to the appropriate category from this list
+6. **If a technology doesn't fit any category** → use the closest match + put specifics in Comments
+
+## Workflow
+
+### Step 1: Check Existing CI Record + Salesforce Footprint
+
+**CI Record:**
+```
+SELECT Id, [all populated fields]
+FROM Competitive_Intelligence__c
+WHERE Account__c = '<account_id>'
+```
+
+If no record exists → note this for creation (requires admin — CI records are usually auto-created).
+If record exists → read current state to avoid overwriting fresher data.
+
+**Salesforce Contracts (what they already own from us):**
+```
+SELECT Id, ContractNumber, StartDate, EndDate, Status
+FROM Contract
+WHERE AccountId = '<account_id>' AND Status = 'Activated'
+ORDER BY EndDate DESC
+```
+
+**Salesforce Subscriptions (product-level detail):**
+```
+SELECT Id, Product2.Name, Product2.Family, Quantity, UnitPrice, TotalPrice
+FROM OpportunityLineItem
+WHERE Opportunity.AccountId = '<account_id>'
+  AND Opportunity.IsClosed = true AND Opportunity.IsWon = true
+ORDER BY Opportunity.CloseDate DESC
+LIMIT 50
+```
+
+**Why this matters for competitive intel:**
+- If Salesforce IS the incumbent CRM → we're defending, not attacking. Competitors are trying to displace US.
+- If Salesforce owns one product line (e.g., Service) but not another (e.g., CRM/Sales) → we're expanding; the competitor is in the adjacent space.
+- **Contract expiration dates** are the most important timing signal — 6 months before expiry is when competitors attack and when we need to defend/expand.
+- If there's NO active Salesforce contract → this is a net-new logo. We're the challenger everywhere.
+
+**Write to the CI record:**
+- If Salesforce is primary in a category → note in comments: "Salesforce is incumbent. Contract expires [date]. Defend + expand."
+- If a competitor is primary but SF contract exists in adjacent category → note: "SF owns [X], competitor owns [Y]. Cross-sell opportunity."
+- Flag any contracts expiring within 6 months as urgent — competitors will be circling.
+
+### Step 2: Sweep Org62 for Competitive Signals
+
+#### 2A. Opportunity Fields
+
+```
+SELECT Id, Name, CompetitiveStatus__c, PrimaryCompetitor__c, 
+       Competitive_Notes__c, How_did_the_Competitor_Differentiate__c,
+       SE_Comments__c, Solution_Description__c, Description
+FROM Opportunity
+WHERE AccountId = '<account_id>' AND IsClosed = false
+```
+
+Look for: competitor names in any text field, competitive status fields, SE comments mentioning alternatives.
+
+#### 2B. Account Text Fields
+
+```
+SELECT Description, Industry, Industry_Focus__c
+FROM Account
+WHERE Id = '<account_id>'
+```
+
+#### 2C. Activity History (Tasks + Events)
+
+```
+SELECT Subject, Description, ActivityDate, WhoId
+FROM Task
+WHERE AccountId = '<account_id>'
+  AND ActivityDate >= LAST_N_MONTHS:6
+  AND (Subject LIKE '%competitor%' OR Subject LIKE '%HubSpot%' OR Subject LIKE '%Dynamics%' 
+       OR Description LIKE '%competitor%' OR Description LIKE '%evaluating%'
+       OR Description LIKE '%alternative%' OR Description LIKE '%vendor%')
+ORDER BY ActivityDate DESC
+LIMIT 20
+```
+
+#### 2D. Notes & Files
+
+Check for attached competitive content:
+```
+SELECT Id, Title, FileType, CreatedDate
+FROM ContentDocumentLink
+WHERE LinkedEntityId = '<account_id>'
+```
+
+### Step 3: Sweep Slack for Competitive Signals
+
+#### 3A. Deal Channel (#ZC:*)
+
+Read recent messages for mentions of:
+- Competitor product names (HubSpot, Dynamics, Zoho, Gong, Orum, IFS, ServiceNow, etc.)
+- Evaluation language ("evaluating", "comparing", "shortlist", "vendor selection", "RFP")
+- Pricing mentions ("$30K", "their pricing", "cost comparison")
+- Competitive positioning discussions
+
+#### 3B. Broad Account Search
+
+```
+"<Account Name>" competitor OR evaluating OR versus OR alternative OR shortlist
+```
+
+#### 3C. DM Conversations (AE-SE)
+
+Search for competitive context shared privately between the AE and SE that may not be in the deal channel.
+
+### Step 4: Synthesize & Categorize
+
+For each competitive signal found, determine:
+
+1. **Which category?** — Map the competitor to one of the 57 product categories
+2. **Primary or Secondary?** — Is this the main competitor or a secondary mention?
+3. **What do we know?** — Product name, pricing, status (evaluating/incumbent/displaced), contract dates
+4. **Source & date** — Where did this intel come from and when?
+
+### Step 5: Validate Picklist Values
+
+Before writing, confirm the competitor name matches an available picklist value:
+
+```python
+# If exact match exists → use it
+# If close match → use closest (e.g., "HubSpot" → "HubSpot CRM")
+# If no match → use "Other" and put the specific name in Comments
+```
+
+Common mappings:
+| What's Said | Picklist Value |
+|---|---|
+| HubSpot | HubSpot CRM |
+| Dynamics / D365 | Microsoft Dynamics 365 Online |
+| Zoho | Zoho |
+| ServiceNow | ServiceNow |
+| Zendesk | Zendesk |
+| Freshdesk | Freshdesk |
+| IFS | Other (put "IFS" in comments) |
+| Gong | Other (put "Gong" in comments) |
+| Orum | Other (put "Orum" in comments) |
+| Snowflake | Other (put "Snowflake" in comments) |
+| Power BI | Microsoft Power BI |
+| NetSuite | NetSuite CRM |
+
+### Step 6: Update the Record
+
+```bash
+sf data update record --sobject Competitive_Intelligence__c --record-id <ci_id> --target-org org62 --values "<fields>"
+```
+
+**Rules for updating:**
+- **Never overwrite fresher data.** If `Date_Set` is more recent than your source, don't overwrite.
+- **Append to comments, don't replace.** If comments already exist, add new intel with a date prefix: `[Jun 03] New signal: ...`
+- **Always set Source and Date_Set.** Traceability matters.
+- **Use Set_By = "Claude Code (automated)"** so humans know this was machine-populated.
+
+### Step 7: Report What Was Found
+
+Output a summary:
+
+```markdown
+## Competitive Intelligence Update: [Account]
+
+**Record:** [CI record ID]
+**Updated:** [date]
+
+| Category | Competitor | Status | Key Intel | Source |
+|---|---|---|---|---|
+| Sales/CRM | [name] | [Incumbent/Evaluating/Displaced] | [1-line context] | [source + date] |
+| Service | [name] | [status] | [context] | [source] |
+| AI/ML | [name] | [status] | [context] | [source] |
+
+**What changed:**
+- [Field]: [old value] → [new value]
+- [Field]: [blank] → [new value]
+
+**Signals found but NOT written (need validation):**
+- [signal that's ambiguous or unconfirmed]
+```
+
+## Automation Triggers
+
+This skill should run:
+- **After every Deal Coach** — competitive context often surfaces in call transcripts
+- **After Account Research** — external research reveals competitor landscape
+- **During Weekly Territory Review** — flag accounts with empty CI records as a hygiene action
+- **On demand** — "update competitive intel for [Account]"
+
+## What Counts as Competitive Intelligence
+
+**INCLUDE:**
+- Named competitor products in use or being evaluated
+- Pricing information (theirs, not ours)
+- Contract expiration dates for competitor products
+- Customer statements about alternatives ("we're also looking at...")
+- Win/loss reasons that reference competitors
+- Technology stack components that compete with Salesforce products
+- Partner/SI relationships with competitor ecosystems
+- **Any named technology in the customer's stack** (see Tech Stack section below)
+
+**EXCLUDE:**
+- Internal Salesforce competitive strategy (that's our playbook, not CI data)
+- Speculative competitors not mentioned by the customer
+- Generic infrastructure that has no Salesforce relevance (e.g., "they use AWS" without context)
+
+## Tech Stack Intelligence (Special Focus)
+
+**Every technology mentioned by the customer — in calls, Slack, activities, or web research — should be captured.** The tech stack tells us:
+
+1. **What competes** — products that overlap with Salesforce capabilities (replacement targets)
+2. **What integrates** — systems we need to connect to (MuleSoft opportunity)
+3. **What complements** — platforms that work alongside Salesforce (partner ecosystem)
+4. **What's being replaced** — systems actively being sunset (our entry point)
+
+### Tech Stack Signal Sources
+
+| Source | What to Look For |
+|---|---|
+| Call transcripts | "We use [X]", "We're on [X]", "We just upgraded [X]", "We're replacing [X]" |
+| Slack threads | System names, vendor discussions, integration mentions |
+| Job postings (web) | Required skills reveal tech stack (e.g., "SAP experience required" = SAP in stack) |
+| Customer website | Technology badges, partner logos, integration pages |
+| Case history | Support cases mentioning connected systems, API partners, middleware |
+| SE Comments | Technical notes from discovery about their architecture |
+
+### Tech Stack Categorization
+
+When a technology is found, categorize it:
+
+| Category | Role | Examples | Salesforce Relevance |
+|---|---|---|---|
+| **CRM** | Customer/deal management | HubSpot, Dynamics, Zoho, NetSuite, Pipedrive | Direct competitor — replacement target |
+| **ERP** | Back-office operations | SAP, Oracle, NetSuite, Epicor, Sage, Business Central | Integration target (MuleSoft) |
+| **Marketing Automation** | Campaigns, email, lead gen | Marketo, Pardot, Mailchimp, Constant Contact, ActiveCampaign | MC replacement or integration |
+| **Service/Support** | Ticketing, case management | Zendesk, Freshdesk, Intercom, ServiceNow, Jira Service Mgmt | Service Cloud replacement |
+| **Analytics/BI** | Reporting, dashboards | Tableau, Power BI, Looker, Qlik, Snowflake, Databricks | Tableau opportunity or Data Cloud integration |
+| **Integration/Middleware** | Connecting systems | Boomi, Informatica, Workato, Zapier, custom APIs | MuleSoft competitive or integration need |
+| **Collaboration** | Team communication | Microsoft Teams, Slack (competitor), Google Workspace | Slack opportunity |
+| **Field Service** | Mobile workforce | IFS, ServiceMax, ClickSoftware, Jobber | FSL replacement |
+| **Commerce** | E-commerce platform | Shopify, Magento, BigCommerce, WooCommerce | Commerce Cloud opportunity |
+| **CPQ/Billing** | Quote-to-cash | Conga, DealHub, Zuora, Chargebee | Revenue Cloud opportunity |
+| **Data/CDP** | Customer data platform | Segment, Tealium, mParticle, Treasure Data | Data Cloud competitive |
+| **AI/Automation** | AI tools, RPA, agents | Gong, Orum, Regie.ai, UiPath, Automation Anywhere | Agentforce competitive |
+| **Phone/Dialer** | Calling platform | RingCentral, Dialpad, Aircall, Five9, Genesys | Service Cloud Voice / CTI |
+| **Document/Content** | Doc management | DocuSign, PandaDoc, Highspot, Seismic | Adjacent — integration partner |
+
+### Writing Tech Stack to the CI Record
+
+- **Direct competitors** → write to the matching `[Category]_Primary_Product__c` field
+- **Integration targets** → write to `Middleware_Interface_Primary_Comments__c` or the relevant category comments with note: "Integration target — MuleSoft opportunity"
+- **Replacement targets** → write to the matching category + flag in comments: "ACTIVELY BEING REPLACED — [timeline if known]"
+- **Complementary tech** → note in comments of the most relevant category but don't position as competitor
+
+### Tech Stack Summary (Additional Output)
+
+When reporting competitive intel, always include a separate **Tech Stack Map**:
+
+```markdown
+## Tech Stack Map: [Account]
+
+| System | Category | Role | Status | SF Relevance |
+|---|---|---|---|---|
+| [e.g., SAP] | ERP | Order management, inventory | Active (just upgraded) | Integration target (MuleSoft) |
+| [e.g., Zoho] | Service | Basic support ticketing | Active (low utilization) | Service Cloud replacement |
+| [e.g., Snowflake] | Analytics | Data warehouse | Active (heavy investment) | Data Cloud integration partner |
+| [e.g., HubSpot] | CRM | Being evaluated | Evaluating | Direct competitor |
+| [e.g., IFS] | Field Service | Dispatch + scheduling | Active (targeted for removal EOY) | FSL replacement target |
+
+**Key Integration Points:** [Which systems need to talk to Salesforce?]
+**Replacement Targets:** [Which systems are being actively sunset?]
+**Whitespace:** [Which categories have NO system today = greenfield for Salesforce?]
+```
+
+This tech stack map should also be written to the account workspace (`~/se-accounts/[account]/research/tech-stack.md`) for persistence across conversations.
+
+## Rules
+
+- **Only write what's evidence-based.** If a competitor wasn't explicitly mentioned by the customer or found in activity notes, don't populate the field. Empty is better than speculative.
+- **Date everything.** Competitive landscape changes fast. "HubSpot" without a date is useless in 6 months.
+- **Comments > Picklist.** The picklist value tells you WHO. The comments tell you WHY and WHAT'S HAPPENING. Always fill both.
+- **Source is mandatory.** "May 28 call with Steve Johnston" is traceable. "General knowledge" is not.
+- **Flag stale intel.** If the CI record was last updated 6+ months ago, flag it in the territory review as needing a refresh.
+- **Don't overwrite human-entered data.** If a field has a recent Date_Set and was Set_By a human, don't replace it with automated intel unless the new data is clearly more current.
+- **"Other" is fine.** Not every competitor fits the picklist. Use "Other" + detailed comments rather than forcing a wrong match.
+
+## Conversation Starters
+
+- "Update competitive intel for Robinson"
+- "What competitors are in play at Stelpro?"
+- "Sweep Laurentide for competitive signals"
+- "Populate CI records for all of Sam's accounts"
+- "Which of Philip's accounts have empty CI records?"

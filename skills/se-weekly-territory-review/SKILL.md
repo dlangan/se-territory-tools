@@ -4,7 +4,7 @@ description: "Runs a structured weekly territory review for one AE: SE Scorecard
 metadata:
   type: sales-operations
   version: "1.0"
-  depends_on: "se-opportunity-field-updater, se-territory-bulk-updater"
+  depends_on: "se-opportunity-field-updater, se-territory-bulk-updater, se-competitive-intel-updater"
 ---
 
 # SE Weekly Territory Review
@@ -90,6 +90,30 @@ Classify each and produce one of three recommendations:
     - Partner Alignment: `aJC3y000000XZAhGAO`
 - **SE scorecard exists, no metric changes warranted** → Recommend TOUCH. The SE should open the scorecard and save it (no changes) to update the LastModifiedDate and signal the deal is being actively monitored.
 - **SE scorecard exists, metric changes warranted** → Recommend UPDATE. List only the specific metrics that need changing: Metric Name | Current Score → Proposed Score | Updated Comment. Scores can go up OR down based on evidence. Each changed metric must include an updated comment field explaining the new score.
+
+#### 1B-2. Competitive Intelligence Check (≥$100K accounts)
+
+For each **account** that has ≥$100K in total open pipeline, run the **se-competitive-intel-updater** skill:
+
+1. Check if the account's `Competitive_Intelligence__c` record has been updated in the last 30 days
+2. If **stale or empty** → sweep org62 activities, opportunity fields, and Slack for competitive signals. Update the CI record.
+3. If **current (≤30 days)** → skip the sweep but include the existing CI data in the territory review output
+
+**What to include in the territory review canvas:**
+
+For each ≥$100K account, add a row to a Competitive Landscape section:
+
+| Account | Primary Competitor | Category | Status | Contract Exp | Last Updated | Action Needed |
+|---|---|---|---|---|---|---|
+| [name] | [competitor] | [Sales/Service/AI/etc.] | [Incumbent/Evaluating/Displacing] | [date or "Unknown"] | [date] | [Refresh/Update/None] |
+
+**Flag these situations:**
+- :red_circle: **CI record completely empty** on an account with ≥$100K pipeline → "No competitive intelligence. Sweep needed."
+- :large_yellow_circle: **CI record stale (>90 days)** → "Competitive landscape may have changed. Refresh recommended."
+- :rotating_light: **Competitor contract expiring within 90 days** → "Competitor contract at [Account] expires [date]. Displacement opportunity or defense needed."
+- :white_check_mark: **CI record current and populated** → No action needed, include in context.
+
+**Integration with SE Scorecard:** The Competitive Position metric (metric 7) on the SE Scorecard should align with what's in the CI record. If the CI record shows a named competitor but the scorecard has Competitive Position = 1 (unknown), flag the discrepancy.
 
 #### 1C. Digital Body Language Health Check (All Opps)
 
@@ -245,6 +269,8 @@ Look across the full portfolio for:
 - Ghost pipeline (opps with zero activity ever)
 - **Methodology gaps** — deals at advanced stages without completing the required activities for their phase (e.g., Stage 04 with no demo delivered, Stage 02 with no POV, Stage 06 with no Mutual Close Plan)
 - **Premature stage advancement** — deals that have been moved forward in stage without earning it through methodology activities (the most dangerous pipeline fiction)
+- **Competitive intelligence gaps** — accounts with ≥$100K pipeline but empty or stale CI records (competitive blind spots). Scorecard "Competitive Position" = 1 while competitors are actively in play = coaching conversation.
+- **Competitor contract expirations** — competitor contracts expiring within 90 days across the territory (displacement opportunities or defense signals)
 
 ### Phase 3: Canvas Generation
 
@@ -369,6 +395,17 @@ These recommendations should be included in the canvas under each deal's methodo
 | --- | --- | --- | --- | --- |
 
 Include all ≥$100K opps. Flag missing scorecards with :rotating_light:.
+
+---
+
+# :crossed_swords: Competitive Landscape (≥$100K accounts)
+
+| Account | Category | Competitor | Status | Contract Exp | CI Health | Action |
+| --- | --- | --- | --- | --- | --- | --- |
+| [account] | [Sales/Service/AI] | [competitor name] | [Incumbent/Evaluating/Displaced] | [date] | [:white_check_mark:/:large_yellow_circle:/:red_circle:] | [None/Refresh/Sweep needed] |
+
+Include all accounts with ≥$100K open pipeline. Show the primary competitor per category.
+Flag: empty CI records (:red_circle:), stale >90 days (:large_yellow_circle:), competitor contracts expiring within 90 days (:rotating_light:).
 
 ---
 
